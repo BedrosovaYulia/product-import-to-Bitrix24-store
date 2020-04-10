@@ -14,7 +14,7 @@ Resources:
       Role: 'arn:aws:iam::148849141066:role/service-role/Bitrix24Lambda'
       Environment:
         Variables:
-          B24key: 'https://bedrosova-test-eda2.bitrix24.ru/rest/1/5tosbtl1chfpwahp/'
+          B24key: 'https://bedrosova-test-eda2.bitrix24.ru/rest/1/#################/'
           TestUrl: 'https://www.pizza-arlekino.ru/i/20/ctg/1.png'
       Layers:
         - 'arn:aws:lambda:us-east-1:148849141066:layer:requests:1'
