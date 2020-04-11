@@ -2,6 +2,7 @@ import json
 import requests
 from urllib.parse import parse_qs
 import base64
+import os
 
 def http_build_query(params, topkey = ''):
   from urllib.parse import quote
@@ -78,8 +79,8 @@ def add_b24_product(key, name, price, file_url):
 def lambda_handler(event, context):
     
 
-        url=TestUrl
-        key=B24key
+        url=os.environ['TestUrl']
+        key=os.environ['B24key']
         
         result=add_b24_product(key,'Test',300,url)
         
