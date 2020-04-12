@@ -20,5 +20,8 @@ Resources:
               Ref: Bucket1
             Events:
               - 's3:ObjectCreated:*'
+      Environment:
+        Variables:
+          test_mode: 'on'
   Bucket1:
     Type: 'AWS::S3::Bucket'
