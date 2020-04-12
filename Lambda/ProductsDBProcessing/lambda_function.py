@@ -43,7 +43,7 @@ def http_build_query(params, topkey = ''):
  
   return result
 
-def add_b24_product(key, name, price, file_url):
+def add_b24_product(key, name, price, file_url, xml_id):
   
   import requests
   import base64
@@ -62,6 +62,7 @@ def add_b24_product(key, name, price, file_url):
       "NAME" : name,
       "CURRENCY_ID": "RUB",
       "PRICE" : price,
+      "XML_ID":xml_id,
       "PREVIEW_PICTURE": {
         "fileData":dict()
         }
@@ -75,6 +76,18 @@ def add_b24_product(key, name, price, file_url):
   result=response.json()
   
   return result
+  
+  
+def update_b24_product(key, name, price, file_url, xml_id):
+  
+  import requests
+  import base64
+  
+  print('Апдейт товара')
+  result="OK"
+  
+  return result
+
 
 DYNAMODB = boto3.resource('dynamodb','us-east-1')
 TABLE = DYNAMODB.Table('B24_products')
@@ -82,23 +95,31 @@ TABLE = DYNAMODB.Table('B24_products')
 def lambda_handler(event, context):
     # TODO implement
     
-    #print(event)
+    print(event)
     
     for Record in event["Records"]:
         if Record["eventName"]=="INSERT":
             offer=Record["dynamodb"]["NewImage"]
-            #print(offer["product_name"]["S"])
-            #print(offer["product_available"]["S"])
-            #print(offer["product_price"]["S"])
-            #print(offer["product_picture"]["S"])
-            #print(offer["id"]["N"])
             
             #отпроцессить картинку, положить результат во 2ю таблицу, где будут накапливаться запросы к Б24
             #пока для теста сразу бахнем запрос к Битрикс24
             
             key=os.environ['B24key']
         
-            result=add_b24_product(key, offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"])
+            result=add_b24_product(key, offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
+        
+            print(result)
+        
+        if Record["eventName"]=="MODIFY":
+          
+            offer=Record["dynamodb"]["NewImage"]
+            
+            #отпроцессить картинку, положить результат во 2ю таблицу, где будут накапливаться запросы к Б24
+            #пока для теста сразу бахнем запрос к Битрикс24
+            
+            key=os.environ['B24key']
+        
+            result=update_b24_product(key, offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
         
             print(result)
         

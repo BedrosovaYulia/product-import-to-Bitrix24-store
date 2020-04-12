@@ -11,7 +11,7 @@ def lambda_handler(event, context):
     # TODO implement
     
     #print("I'm being triggered")
-    #print(event)
+    print(event)
     
     s3=boto3.client("s3")
     if event:
