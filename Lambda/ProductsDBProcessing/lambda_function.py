@@ -5,6 +5,8 @@ import requests
 from urllib.parse import parse_qs
 import base64
 
+
+
 def http_build_query(params, topkey = ''):
   from urllib.parse import quote
  
@@ -77,8 +79,9 @@ def update_b24_product(bitrix_id, key, name, price, file_url, xml_id):
   
   import requests
   import base64
+  import boto3
   
-  print("Апдейт товара с ИД ",bitrix_id)
+  print("Product update with id ",bitrix_id)
   
   content1=requests.get(file_url).content
   image_64_encode = str(base64.b64encode(content1))[2:-1]
@@ -99,13 +102,12 @@ def update_b24_product(bitrix_id, key, name, price, file_url, xml_id):
         
   product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['0']="1.png"
   product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['1']=image_64_encode
-
+  
   response = requests.post(key+"crm.product.update",http_build_query(product_data))
   result=response.json()
   
-  return result["result"]
-  
-
+  return result
+    
 DYNAMODB = boto3.resource('dynamodb','us-east-1')
 TABLE = DYNAMODB.Table('B24_products')
 
@@ -119,13 +121,13 @@ def lambda_handler(event, context):
             
             offer=Record["dynamodb"]["NewImage"]
             
-            #отпроцессить картинку, положить результат во 2ю таблицу, где будут накапливаться запросы к Б24
-            #пока для теста сразу бахнем запрос к Битрикс24
+            #process the picture, put the result in the queue, where requests to B24 will accumulate
+            #while for the test we’ll immediately make a request to Bitrix24
             key=os.environ['B24key']
             bitrix_id=add_b24_product(key, offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
-            print("В Битрикс24 добавлен товар с ИД: ",bitrix_id)
+            print("in Bitrix24 added product with ID: ",bitrix_id)
             
-            #Дописываем ид товара Битрикс24 в таблицу товаров
+            #add Bitrix24 product id to the product table
             response = TABLE.update_item(
               Key={
                   'id': int(offer["id"]["N"]),
@@ -143,16 +145,16 @@ def lambda_handler(event, context):
             offer=Record["dynamodb"]["NewImage"]
             offer_old=Record["dynamodb"]["OldImage"]
             
-            #отпроцессить картинку, положить результат во 2ю таблицу, где будут накапливаться запросы к Б24
-            #пока для теста сразу бахнем запрос к Битрикс24
+            #process the picture, put the result in the queue, where requests to B24 will accumulate
+            #while for the test we’ll immediately make a request to Bitrix24
             
-            #Обновляем цену только если она изменилась
+            #We update the price only if it has changed
             if offer["product_price"]["S"]!=offer_old["product_price"]["S"]:
               key=os.environ['B24key']
               result=update_b24_product(offer_old["bitrix_id"]["N"], key, offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
               print(result)
             
-            #возвращаем на место битрикс_ид
+            #return bitrix_id to the place
             response = TABLE.update_item(
               Key={
                   'id': int(offer["id"]["N"]),
