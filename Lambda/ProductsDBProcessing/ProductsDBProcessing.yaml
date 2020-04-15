@@ -21,12 +21,15 @@ Resources:
                 - Table1
                 - StreamArn
             StartingPosition: TRIM_HORIZON
-            BatchSize: 50
+            BatchSize: 2
       Environment:
         Variables:
-          B24key: 'https://bedrosova-test-eda2.bitrix24.ru/rest/1/*****************/'
+          B24key: 'https://bedrosova-test-eda2.bitrix24.ru/rest/1/****************/'
+          domain: bedrosova-test-eda2.bitrix24.ru
+          key: **************
       Layers:
         - 'arn:aws:lambda:us-east-1:148849141066:layer:requests:1'
+        - 'arn:aws:lambda:us-east-1:148849141066:layer:bitrix24:1'
   Table1:
     Type: 'AWS::DynamoDB::Table'
     Properties:
