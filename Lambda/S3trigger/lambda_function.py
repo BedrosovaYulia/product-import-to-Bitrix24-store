@@ -30,7 +30,7 @@ def lambda_handler(event, context):
         
         k=0
         for offer in offers:
-            if k<5 or os.environ['test_mode']=='off':
+            if k<4 or os.environ['test_mode']=='off':
                 k+=1
         
                 product_name = offer.getElementsByTagName("name")[0].firstChild.data
@@ -50,7 +50,7 @@ def lambda_handler(event, context):
                 item['product_name']=product_name
                 item['product_price']=product_price
                 item['product_picture']=product_picture
-                item['bitrix_id']='0'
+                item['bitrix_id']=0
         
                 TABLE.put_item(Item=item)
                 
