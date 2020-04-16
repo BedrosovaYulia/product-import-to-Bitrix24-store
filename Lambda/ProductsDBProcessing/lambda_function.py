@@ -141,7 +141,7 @@ def lambda_handler(event, context):
                 },
               UpdateExpression="set bitrix_id = :r",
               ExpressionAttributeValues={
-                  ':r': result['result']['result'][offer["id"]["N"]],
+                  ':r': int(result['result']['result'][offer["id"]["N"]]),
               },
               ReturnValues="UPDATED_NEW"
             )
