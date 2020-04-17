@@ -20,6 +20,8 @@ def add_b24_product(name, price, file_url, xml_id):
   import requests
   import base64
   
+  print("Add new product with xml_id ",xml_id)
+  
   content1=requests.get(file_url).content
   image_64_encode = str(base64.b64encode(content1))[2:-1]
   
@@ -94,7 +96,6 @@ def lambda_handler(event, context):
         #print(Record["dynamodb"]["NewImage"]["bitrix_id"]["N"])
         if Record["eventName"]=="INSERT" and int(Record["dynamodb"]["NewImage"]["bitrix_id"]["N"])==0:
             
-            print("Зашло")
             offer=Record["dynamodb"]["NewImage"]
             add_b24_product(offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
             
@@ -109,7 +110,7 @@ def lambda_handler(event, context):
               
             #return bitrix_id to the place
             if int(offer_old["bitrix_id"]["N"])>0 and int(offer["bitrix_id"]["N"])==0:
-             response = TABLE.update_item(
+             TABLE.update_item(
                 Key={
                     'id': int(offer["id"]["N"]),
                  },
@@ -123,7 +124,6 @@ def lambda_handler(event, context):
     
     #execute a batch request for all additions
     if len(calls_add)>0:
-      print(len(calls_add))
       
       result = bx24.call_batch_webhook(calls_add, key, True)
       print(result['result']['result'])
@@ -131,11 +131,8 @@ def lambda_handler(event, context):
       #add Bitrix24 product id to the product table
       for Record in event["Records"]:
         if Record["eventName"]=="INSERT" and int(Record["dynamodb"]["NewImage"]["bitrix_id"]["N"])==0:
-          #print(Record)
           offer=Record["dynamodb"]["NewImage"]
-          print(offer["id"]["N"])
-          print(result['result']['result'][offer["id"]["N"]])
-          response = TABLE.update_item(
+          TABLE.update_item(
               Key={
                   'id': int(offer["id"]["N"]),
                 },
@@ -150,7 +147,7 @@ def lambda_handler(event, context):
     #execute a batch request for all updates
     if len(calls_update)>0:
       result = bx24.call_batch_webhook(calls_update, key, True)
-      #print(result['result'])
+      print(result['result'])
     
             
     return {
