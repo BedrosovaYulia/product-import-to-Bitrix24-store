@@ -20,8 +20,6 @@ def add_b24_product(name, price, file_url, xml_id):
   import requests
   import base64
   
-  print("Add new product with xml_id ",xml_id)
-  
   content1=requests.get(file_url).content
   image_64_encode = str(base64.b64encode(content1))[2:-1]
   
@@ -40,14 +38,8 @@ def add_b24_product(name, price, file_url, xml_id):
         
   product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['0']="1.png"
   product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['1']=image_64_encode
-  
-  #collect the batch
-  calls_add[xml_id]={
-                'method': 'crm.product.add',
-                'params': product_data
-            }
 
-  return True
+  return product_data
   
   
 def update_b24_product(bitrix_id, name, price, file_url, xml_id):
@@ -55,8 +47,6 @@ def update_b24_product(bitrix_id, name, price, file_url, xml_id):
   import requests
   import base64
   import boto3
-  
-  print("Product update with id ",bitrix_id)
   
   content1=requests.get(file_url).content
   image_64_encode = str(base64.b64encode(content1))[2:-1]
@@ -78,9 +68,7 @@ def update_b24_product(bitrix_id, name, price, file_url, xml_id):
   product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['0']="1.png"
   product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['1']=image_64_encode
   
-  result = bx24.call_webhook('crm.product.update', key, params=product_data)
-  
-  return result
+  return product_data
     
 def lambda_handler(event, context):
     # TODO implement
@@ -97,7 +85,14 @@ def lambda_handler(event, context):
         if Record["eventName"]=="INSERT" and int(Record["dynamodb"]["NewImage"]["bitrix_id"]["N"])==0:
             
             offer=Record["dynamodb"]["NewImage"]
-            add_b24_product(offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
+            
+            #collect the batch
+            product_data=add_b24_product(offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
+            
+            calls_add[offer["id"]["N"]]={
+                          'method': 'crm.product.add',
+                          'params': product_data
+                      }
             
         if Record["eventName"]=="MODIFY":
           
@@ -106,8 +101,15 @@ def lambda_handler(event, context):
             
             #We update the price only if it has changed
             if offer["product_price"]["S"]!=offer_old["product_price"]["S"]:
-              update_b24_product(offer_old["bitrix_id"]["N"], offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
               
+              #collect the batch
+              product_data=update_b24_product(offer_old["bitrix_id"]["N"], offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
+              
+              calls_update[offer["id"]["N"]]={
+                          'method': 'crm.product.update',
+                          'params': product_data
+                      }
+                      
             #return bitrix_id to the place
             if int(offer_old["bitrix_id"]["N"])>0 and int(offer["bitrix_id"]["N"])==0:
              TABLE.update_item(
@@ -116,7 +118,7 @@ def lambda_handler(event, context):
                  },
                UpdateExpression="set bitrix_id = :r",
                ExpressionAttributeValues={
-                    ':r': offer_old["bitrix_id"]["N"],
+                    ':r': int(offer_old["bitrix_id"]["N"]),
                },
                ReturnValues="UPDATED_NEW"
              )
@@ -146,6 +148,7 @@ def lambda_handler(event, context):
     
     #execute a batch request for all updates
     if len(calls_update)>0:
+  
       result = bx24.call_batch_webhook(calls_update, key, True)
       print(result['result'])
     
