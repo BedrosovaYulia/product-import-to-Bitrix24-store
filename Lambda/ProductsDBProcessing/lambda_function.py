@@ -4,6 +4,8 @@ import boto3
 #Bitrix24 lib - in Layers
 from bitrix24 import Bitrix24
 
+from b24_interface.query_builder import B24QueryBuilder
+
 domain=os.environ['domain']
 key=os.environ['key']
         
@@ -15,61 +17,6 @@ TABLE = DYNAMODB.Table('B24_products')
 calls_add=dict()
 calls_update=dict()
 
-def add_b24_product(name, price, file_url, xml_id):
-  
-  import requests
-  import base64
-  
-  content1=requests.get(file_url).content
-  image_64_encode = str(base64.b64encode(content1))[2:-1]
-  
-  product_data = {
-    "fields" : {
-      "iblockId": 1,
-      "NAME" : name,
-      "CURRENCY_ID": "RUB",
-      "PRICE" : price,
-      "XML_ID":xml_id,
-      "PREVIEW_PICTURE": {
-        "fileData":dict()
-        }
-      }
-    }
-        
-  product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['0']="1.png"
-  product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['1']=image_64_encode
-
-  return product_data
-  
-  
-def update_b24_product(bitrix_id, name, price, file_url, xml_id):
-  
-  import requests
-  import base64
-  import boto3
-  
-  content1=requests.get(file_url).content
-  image_64_encode = str(base64.b64encode(content1))[2:-1]
-  
-  product_data = {
-    "id":bitrix_id,
-    "fields" : {
-      "iblockId": 1,
-      "NAME" : name,
-      "CURRENCY_ID": "RUB",
-      "PRICE" : price,
-      "XML_ID":xml_id,
-      "PREVIEW_PICTURE": {
-        "fileData":dict()
-        }
-      }
-    }
-        
-  product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['0']="1.png"
-  product_data["fields"]["PREVIEW_PICTURE"]["fileData"]['1']=image_64_encode
-  
-  return product_data
-    
 def lambda_handler(event, context):
     # TODO implement
     
@@ -87,7 +34,7 @@ def lambda_handler(event, context):
             offer=Record["dynamodb"]["NewImage"]
             
             #collect the batch
-            product_data=add_b24_product(offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
+            product_data=B24QueryBuilder.add_b24_product(offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
             
             calls_add[offer["id"]["N"]]={
                           'method': 'crm.product.add',
@@ -103,7 +50,7 @@ def lambda_handler(event, context):
             if offer["product_price"]["S"]!=offer_old["product_price"]["S"]:
               
               #collect the batch
-              product_data=update_b24_product(offer_old["bitrix_id"]["N"], offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
+              product_data=B24QueryBuilder.update_b24_product(offer_old["bitrix_id"]["N"], offer["product_name"]["S"], offer["product_price"]["S"], offer["product_picture"]["S"], offer["id"]["N"])
               
               calls_update[offer["id"]["N"]]={
                           'method': 'crm.product.update',
